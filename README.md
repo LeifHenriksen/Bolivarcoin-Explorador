@@ -1,11 +1,6 @@
-This explorer is forked from Luke's Explorer (https://github.com/iquidus/explorer)  with a bit of flavoring from https://github.com/masterhash-us/Explorer, which seems to be gone now. Cleaning up README.md. History can be found in the first upload commit.
+Bolivarcoin explorador, explorador basado en el explorador de iquidus(https://github.com/iquidus/explorer).
 
-Run with dstra.conf in your data directory containing:
-rpcuser=USER
-rpcpassword=PASSWORD
-rpcport=5270
-listen=1
-server=1
+This explorer is a clone from Luke's Explorer (https://github.com/iquidus/explorer).
 
 Iquidus Explorer - 1.6.1
 ================
