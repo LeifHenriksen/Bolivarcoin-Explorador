@@ -1,0 +1,27 @@
+html(xmlns='http://www.w3.org/1999/xhtml', xml:lang='en', lang='en')
+  head
+    title JQVMap - World Map
+    meta(content='text/html; charset=utf-8', http-equiv='Content-Type')
+    link(href='../dist/jqvmap.css', media='screen', rel='stylesheet', type='text/css')
+    script(type='text/javascript', src='http://code.jquery.com/jquery-1.11.3.min.js')
+    script(type='text/javascript', src='jqvmap-master/dist/jquery.vmap.js')
+    script(type='text/javascript', src='jqvmap-master/dist/maps/jquery.vmap.world.js', charset='utf-8')
+    script(type='text/javascript', src='jquery.vmap.sampledata.js')
+    script.
+      jQuery(document).ready(function () {
+      jQuery('#vmap').vectorMap({
+      map: 'world_en',
+      backgroundColor: '#333333',
+      color: '#ffffff',
+      hoverOpacity: 0.7,
+      selectedColor: '#666666',
+      enableZoom: true,
+      showTooltip: true,
+      scaleColors: ['#C8EEFF', '#006491'],
+      values: sample_data,
+      normalizeFunction: 'polynomial'
+      });
+      });
+  body
+    #vmap(style='width: 600px; height: 400px;')
+

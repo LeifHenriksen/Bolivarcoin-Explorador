@@ -1,0 +1,124 @@
+extends layout
+
+block extraHeader
+    link(href='jqvmap-master/dist/jqvmap.css', media='screen', rel='stylesheet', type='text/css')
+    script(type='text/javascript', src='http://code.jquery.com/jquery-1.11.3.min.js')
+    script(type='text/javascript', src='jqvmap-master/dist/jquery.vmap.js')
+    script(type='text/javascript', src='jqvmap-master/dist/maps/jquery.vmap.world.js', charset='utf-8')
+    script(type='text/javascript', src='jqvmap-master/examples/js/jquery.vmap.sampledata.js')   
+    script(type='text/javascript', src='jqvmap-master/code_to_name.js')
+
+    script.
+     var country_array = {};
+     jQuery(document).ready(function(){
+   
+           $.ajax({url: '/ext/summary', success: function(json){
+           //console.log('update lbl');
+           $("#supply").text(json.data[0].supply);
+           $("#difficulty").text(((json.data[0].difficulty / 1000).toFixed(2)).toString() + " k");
+           $("#masternodeCount").text(json.data[0].masternodeCount);
+           $("#masternodeOnlineCount").text(json.data[0].masternodeOnlineCount);
+         
+           $("#lblConnections").text(json.data[0].connections + ' conecciones');
+           $("#lblBlockcountValue").text(json.data[0].blockcount);
+           $("#lblmasternodeOnlineCount").text(json.data[0].masternodeOnlineCount + ' masternodes');
+
+           }});
+           /*
+           $.ajax({url: '/ext/getlasttxs/0.00000001', success: function ( json ) {
+            json.data[0]['timestamp'] = new Date((json.data[0]['timestamp']) * 1000);
+            let now = new Date();
+            let dif = (now - json.data[0]['timestamp']) / 1000;
+            let hours = (dif / 3600);
+            let minutes = (dif % 3600) / 60;
+            $("#last_block_timestamp").text("Age: " + Math.floor(hours).toString() + " hours " + Math.floor(minutes).toString() + " minutes");
+           }});
+           */
+           $.ajax({url: '/ext/getlasttxs/0.00000001', success: function ( json ) {
+           json.data[0]['timestamp'] = new Date((json.data[0]['timestamp']) * 1000);
+           let now = new Date();
+           let dif = (now - json.data[0]['timestamp']) / 1000;
+           let hours = (dif / 3600);
+           let minutes = (dif % 3600) / 60;
+           if(hours < 1)
+             $("#last_block_timestamp").text("Age: " + Math.floor(minutes).toString() + ((Math.floor(minutes) == 1)?" minute" : " minutes"));
+           else
+             $("#last_block_timestamp").text("Age: " + Math.floor(hours).toString()   + ((Math.floor(hours) == 1)?" hour":" hours")
+                                                     + Math.floor(minutes).toString() + ((Math.floor(minutes) == 1)?" minute":" minutes"));
+           }});
+           $.when(
+           $.ajax({url: 'https://api.coingecko.com/api/v3/simple/price?ids=bolivarcoin&vs_currencies=usd,btc'}),
+           $.ajax({url: 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'}),
+           $.ajax({url: 'https://s3.amazonaws.com/dolartoday/data.json'})
+           )
+           .done(function (json1, json2, json3) {
+             console.log(json1);
+             console.log(json2);
+             console.log(json3);
+             let price_boli_usd = json1[0]['bolivarcoin']['usd'];
+             let price_boli_btc = json1[0]['bolivarcoin']['btc'];
+             let price_btc_usd  = json2[0]['bitcoin']['usd'];
+             let usd_bolivar    = json3[0]['USD']['promedio'];
+             $("#bolivarcoin_prices").text("1 Boli = " + Math.floor(price_boli_btc * 100000000) + "sat = $"
+                                                       + price_boli_usd.toFixed(3) + " = "
+                                                       + Math.floor(usd_bolivar * price_boli_usd) + " bolivares");
+           });
+
+ 
+           $.ajax({url     : '/ext/connections', 
+                   cache   : false, 
+                   success : function(json)
+                             {
+                               //console.log(json.data.length);
+                               for(let i = 0; i<json.data.length; i++)
+                               {
+                                  //console.log(json.data[i]);
+                                  if(country_array.hasOwnProperty(json.data[i].country_code.toLowerCase()))
+                                   {
+                                    country_array[json.data[i].country_code.toLowerCase()] =
+                                    +country_array[json.data[i].country_code.toLowerCase()] + +"1" ;
+                                   }
+                                  else
+                                   {
+                                    country_array[json.data[i].country_code.toLowerCase()] = "1";
+                                   }
+                               }
+                               jQuery('#vmap').vectorMap('set', 'values', country_array);
+                             }
+                   });
+                      
+           //console.log(country_array);
+           //console.log(sample_data);
+           
+           jQuery('#vmap').vectorMap({
+           map: 'world_en',
+           backgroundColor: '#333333',
+           color: '#ffffff',
+           hoverOpacity: 0.7,
+           selectedColor: '#666666',
+           enableZoom: true,
+           showTooltip: true,
+           scaleColors: ['#C8EEFF', '#006491'],
+           values: country_array,
+           normalizeFunction: 'polynomial'
+           });
+           //console.log(isoCountries);
+           jQuery('#vmap').bind('labelShow.jqvmap', function(event, label, code){
+                if(country_array[code] == undefined)
+                    label.text(isoCountries[code.toUpperCase()] + ' : ' + 0 + ' Connections ');
+                else                
+                    label.text(isoCountries[code.toUpperCase()] + ' : ' + country_array[code] + ' Connections ');
+            });
+           });
+
+block content
+  .col-md-12(style='margin-bottom: 80px;')
+    .row.text-center(style='margin-bottom:15px;')
+      i #{settings.locale.net_warning}
+    .panel.panel-default(style='background-color: #333333;')
+      .panel-heading
+        strong Connections geolocation
+      .col-sm-3
+      #vmap(style='width: 50%; height : 13cm;')
+      .col-sm-3
+ 

@@ -1,0 +1,137 @@
+extends layout
+
+block extraHeader
+    link(href='jqvmap-master/dist/jqvmap.css', media='screen', rel='stylesheet', type='text/css')
+    script(type='text/javascript', src='http://code.jquery.com/jquery-1.11.3.min.js')
+    script(type='text/javascript', src='jqvmap-master/dist/jquery.vmap.js')
+    script(type='text/javascript', src='jqvmap-master/dist/maps/jquery.vmap.world.js', charset='utf-8')
+    script(type='text/javascript', src='jqvmap-master/examples/js/jquery.vmap.sampledata.js')   
+    script(type='text/javascript', src='jqvmap-master/code_to_name.js')
+
+    script.
+      
+     var country_array = {};
+     var error_ajax = false;
+     function get_connection_country(ip)
+     {
+      $.ajax({url: 'http://ip-api.com/json/'+ip, cache: false,
+              success: function(json)
+              {
+                if (country_array.hasOwnProperty(json.countryCode.toLowerCase()))
+                {
+                  country_array[json.countryCode.toLowerCase()] =
+                  +country_array[json.countryCode.toLowerCase()] + +"1" ;
+                 }
+                else
+                 {
+                  country_array[json.countryCode.toLowerCase()] = "1";
+                 }
+                console.log(country_array);
+                /*document.cookie = "country_array="+JSON.stringify(country_array)+";";*/
+              },
+              error: function (xhr, ajaxOptions, thrownError) {
+                console.log(thrownError);
+                error_ajax = true;
+              }});   
+      }
+
+      function create_connections_ip_array(json){
+       let ip_array = [];
+       for(let i = 0; i<json.data.length; i++) {
+        ip_array.push(json.data[i].address);
+       }
+       //console.log(ip_array);
+       return ip_array;
+      }
+
+      function create_country_array()
+      {
+       $.ajax({url: '/ext/connections', cache: false, success: function(json){
+               console.log(json);
+               let ip_array = create_connections_ip_array(json);
+               console.log(ip_array);
+               let counter = 0;
+               while(counter < ip_array.length){
+                           setTimeout(function(){get_connection_country(ip_array[counter]);},
+                           60500 * Math.floor(counter/45));
+                           counter++;
+                           console.log(60500 * Math.floor(counter/45));
+               }
+               setTimeout(function(){
+                           if(!error_ajax)
+                            {
+                              document.cookie = "country_array="+JSON.stringify(country_array)+";";
+                              jQuery('#vmap').vectorMap('set', 'values', country_array);
+                            }
+                            },
+                            61000 * Math.floor(counter/45));
+              }});}
+   
+      function get_country_array_from_cookie(){
+       //console.log(document.cookie);
+       var str = document.cookie;
+       str = str.substring(str.lastIndexOf("country_array"), str.length);
+       //console.log(str);
+       str = str.substring(0, !(str.indexOf(";") === -1)? str.indexOf(";") : str.length);
+       //console.log(str);
+       str = str.substring(str.indexOf("=") + 1);
+       //console.log(str);
+       return JSON.parse(str);
+     }
+
+
+      jQuery(document).ready(function(){
+   
+            $.ajax({url: '/ext/summary', success: function(json){
+            console.log('update lbl');
+            $("#masternodeCount").text(json.data[0].masternodeCount);
+            $("#masternodeOnlineCount").text(json.data[0].masternodeOnlineCount);
+          
+            $("#lblConnections").text(json.data[0].connections + ' connections');
+            $("#lblBlockcountValue").text(json.data[0].blockcount);
+            $("#lblmasternodeOnlineCount").text(json.data[0].masternodeOnlineCount + ' masternodes');
+
+            }});
+            $.ajax({url: '/ext/connections', cache: false, success: function(json){console.log(json)}});
+           create_country_array();
+           console.log(country_array);
+           
+           if(document.cookie.includes('country_array')){      
+             sample_data = get_country_array_from_cookie();
+           }
+           else{
+             sample_data = country_array;
+           }
+           console.log(sample_data);
+           jQuery('#vmap').vectorMap({
+           map: 'world_en',
+           backgroundColor: '#333333',
+           color: '#ffffff',
+           hoverOpacity: 0.7,
+           selectedColor: '#666666',
+           enableZoom: true,
+           showTooltip: true,
+           scaleColors: ['#C8EEFF', '#006491'],
+           values: sample_data,
+           normalizeFunction: 'polynomial'
+           });
+           //console.log(isoCountries);
+           jQuery('#vmap').bind('labelShow.jqvmap', function(event, label, code){
+                if(sample_data[code] == undefined)
+                    label.text(isoCountries[code.toUpperCase()] + ' : ' + 0 + ' Connections ');
+                else                
+                    label.text(isoCountries[code.toUpperCase()] + ' : ' + sample_data[code] + ' Connections ');
+            });
+           });
+
+block content
+  .col-md-12(style='margin-bottom: 80px;')
+    .row.text-center(style='margin-bottom:15px;')
+      i #{settings.locale.net_warning}
+    .panel.panel-default(style='background-color: #333333;')
+      .panel-heading
+        strong Connections geolocation
+      .col-sm-3
+      #vmap(style='width: 50%; height : 13cm;')
+      .col-sm-3
+ 
